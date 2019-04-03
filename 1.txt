@@ -1,0 +1,29 @@
+模拟接口路径
+/duo-service/src/main/java/com/each/arcard/controller/test/TestServices.java
+
+测试服务器地址：120.26.196.121
+用户名 root
+密码 my1net.com.
+
+工具：
+xshell
+xftp
+
+路径：
+/data/wwwroot/pdd-service
+/data/wwwroot/default/duo-admin
+/usr/local/tomcat/
+
+重启命令：（任何路径下）
+service tomcat restart
+
+替换前，需要备份之前的文件，修改原文件的后缀名为.bak
+
+日志路径
+/usr/local/tomcat/logs
+
+打包命令
+mvn clean install -DskipTests -P local-dev
+mvn clean install -DskipTests -P local-test
+mvn clean install -DskipTests -P local-fang
+mvn clean install -DskipTests -P online-private
