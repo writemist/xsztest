@@ -1,0 +1,93 @@
+涉及的表：
+
+config表：记录本月、下月各级抽成
+comm_relation_this表：本月抽成关系
+comm_relation_last表：上月抽成关系
+comm_relation_upgrade表：升级临时表
+init_upgrade表：升级的总监表
+duoke表
+
+
+
+
+流程：
+1.清空升级临时表（comm_relation_upgrade）
+2.更新上月抽成表的duoke_realtion（物理抽成关系）
+3.将上月抽成关系表导入升级临时表
+
+4.升级9777
+  4.1 从升级的总监表中查询duoke_id = 9777的记录(升序，保证挂靠的先执行)
+  4.2 如果是升级为运营总监
+      4.2.1 如果挂靠的直属抽成上级为分公司或0
+	        执行没有挂靠的升级
+	  4.2.2 否则
+            查询comm_relation_this表中，挂靠的直属抽成上级的身份等级
+			执行有挂靠的升级
+  4.3 如果是升级为高级总监
+      4.3.1 如果挂靠的直属抽成上级为分公司或0
+	        执行没有挂靠的升级
+      4.3.2 否则
+            查询comm_relation_this表中，挂靠的直属抽成上级的身份等级
+            4.3.2.1 上级为高级总监
+			        执行有挂靠的升级
+		    4.3.2.2 上级为运营总监	
+					查询升级临时表中duoke_id的relation
+					执行自身是高级总监，上级不是高级总监的升级
+  4.4 更新duoke、comm_relation_this的is_out（脱离关系状态）字段
+  4.5 删除comm_relation_upgrade表中duoke_id记录
+			 
+5.升级运营总监和高级总监
+  基本上与9777一致
+  区别：
+  5.1 从升级的总监表中查询duoke_id <> 9777的记录(升序，保证挂靠的先执行)
+  5.2 在更新duoke、comm_relation_this的is_out（脱离关系状态）字段时，根据a_is_new（是否为新升级的总监），把update_time = now()
+
+6.升级运营总监和高级总监团队
+  6.1 从config表运总直属超会抽成、运总间接超会抽成、高总直属超会抽成、高总间接超会抽成比例
+  6.2 查询comm_relation_this表中所有非超级会员身份的记录（倒序，保证下面的先执行）
+  6.3 循环非超级会员身份的记录
+      6.3.1  将直属下级新增到comm_relation_this表，direct_svip_id（以直属超级会员方式抽成的用户ID）设置为自己，indirect_svip_id（以间接超级会员方式抽成的用户ID ）设置为0
+      6.3.2  将间接下级新增到comm_relation_this表，indirect_svip_id（以间接超级会员方式抽成的用户ID）设置为自己，  
+	  6.3.3  删除升级临时表中直属/间接下级记录
+	  6.3.4  如果自己升级为高总
+	  更新comm_relation_this中，direct_svip_id（以直属超级会员方式抽成的用户ID）为自己的记录（直属团队），将direct_svip_rate（以直属超级会员方式抽成的用户抽成比例）设置为config中高总直属超会抽成，indirect_svip_id（以间接超级会员方式抽成的用户ID ）设置为0，indirect_svip_rate（以间接超级会员方式抽成的用户抽成比例 ）设置为0，分公司、分公司比例、以直属运营总监团队方式抽成、以直属高级总监团队方式抽成、间接运营/高级总监抽成都继承自己的
+	  更新comm_relation_this中，indirect_svip_id（以间接超级会员方式抽成的用户ID）为自己的记录（间接团队），将indirect_svip_rate（以间接超级会员方式抽成的用户抽成比例 ）设置为config中高总间接超会抽成，分公司、分公司比例、以直属运营总监团队方式抽成、以直属高级总监团队方式抽成、间接运营/高级总监抽成都继承自己的
+	  
+	  6.3.5  如果自己升级为运总
+	  更新comm_relation_this中，direct_svip_id（以直属超级会员方式抽成的用户ID）为自己的记录（直属团队），将direct_svip_rate（以直属超级会员方式抽成的用户抽成比例）设置为config中运总直属超会抽成，indirect_svip_id（以间接超级会员方式抽成的用户ID ）设置为0，indirect_svip_rate（以间接超级会员方式抽成的用户抽成比例 ）设置为0，分公司、分公司比例、以直属运营总监团队方式抽成、以直属高级总监团队方式抽成、间接运营/高级总监抽成都继承自己的
+	  更新comm_relation_this中，indirect_svip_id（以间接超级会员方式抽成的用户ID）为自己的记录（间接团队），将indirect_svip_rate（以间接超级会员方式抽成的用户抽成比例 ）设置为config中运总间接超会抽成，分公司、分公司比例、以直属运营总监团队方式抽成、以直属高级总监团队方式抽成、间接运营/高级总监抽成都继承自己的
+
+
+
+
+统一处理：
+1.没有挂靠的升级（身份、duokeid）
+  1.1 根据升级类型（运营总监\高级总监）从config表获取本月的自抽比例
+  1.2 将升级临时表中对应的duoke_id记录，新增到comm_relation_this表,上级抽成都为0，self_rate为自抽比例，branch_company_member_type（分公司成员身份）为0
+  
+2.有挂靠的升级（上级身份、身份、上级id、duokeid）
+  2.1 根据升级类型（运营总监\高级总监）从config表获取本月的自抽比例
+  2.2 如果是升级为运营总监
+      2.2.1 上级为高级总监
+   将升级临时表中对应的duoke_id记录，新增到comm_relation_this表，relation为上级id+自身id，self_rate为运总自抽比例，branch_company_member_type（分公司成员身份）为0， direct_director_id（以直属运营总监团队方式抽成的用户ID）为上级id，direct_director_rate（以直属运营总监团队方式抽成的用户抽成比例）为config中高总抽直属运总团队
+	  2.2.2 上级为运营总监	
+   将升级临时表中对应的duoke_id记录，新增到comm_relation_this表，relation为上级id+自身id，self_rate为运总自抽比例，branch_company_member_type（分公司成员身份）为0，
+   direct_director_id（以直属运营总监团队方式抽成的用户ID）为上级id，direct_director_rate（以直属运营总监团队方式抽成的用户抽成比例）为config中运总抽直属运总团队
+  2.3 如果是升级为高级总监，上级只能为高总
+   将升级临时表中对应的duoke_id记录，新增到comm_relation_this表，relation为上级id+自身id，self_rate为高总自抽比例，branch_company_member_type（分公司成员身份）为0，
+direct_senior_director_id（以直属高级总监团队方式抽成的用户ID）为上级id，direct_senior_director_rate（以直属高级总监团队方式抽成的用户抽成比例）为config中高总抽直属高总团队
+
+3. 自身是高级总监，上级不是高级总监的升级（relation、duoke_id）    
+   3.1 从config表获取高总抽直属高总团队抽成比例
+   3.2 循环查询上级，直到上级为高总为止
+       3.2.1 没有这个上级
+	         按没有挂靠的升级，
+			修改comm_relation_this，以直属高级总监团队方式抽成的用户ID设置为顶上级（他不是高总），以直属高级总监团队方式抽成的用户抽成比例为config中高总抽直属高总团队
+	   3.2.2 有这个上级
+			 按有挂靠的升级
+          修改comm_relation_this，以直属高级总监团队方式抽成的用户ID设置为高总上级，以直属高级总监团队方式抽成的用户抽成比例为config中高总抽直属高总团队
+      
+ 	
+		
+	  
+		  
