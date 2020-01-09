@@ -18,7 +18,7 @@ public class YangHuiTriangle {
 	}
 
 	/**
-	 * 打印杨辉三角111
+	 * 打印杨辉三角11111
 	 *
 	 * @param n
 	 *            要打印的行数
