@@ -44,7 +44,7 @@ duoke表
 
 6.升级运营总监和高级总监团队
   6.1 从config表运总直属超会抽成、运总间接超会抽成、高总直属超会抽成、高总间接超会抽成比例
-  6.2 查询comm_relation_this表中所有非超级会员身份的记录（倒序，保证下面的先执行）
+  6.2 查询comm_relation_this表中所有非超级会员身份的记录，除去9777（倒序，保证下面的先执行）
   6.3 循环非超级会员身份的记录
       6.3.1  将直属下级新增到comm_relation_this表，direct_svip_id（以直属超级会员方式抽成的用户ID）设置为自己，indirect_svip_id（以间接超级会员方式抽成的用户ID ）设置为0
       6.3.2  将间接下级新增到comm_relation_this表，indirect_svip_id（以间接超级会员方式抽成的用户ID）设置为自己，  
@@ -57,8 +57,30 @@ duoke表
 	  更新comm_relation_this中，direct_svip_id（以直属超级会员方式抽成的用户ID）为自己的记录（直属团队），将direct_svip_rate（以直属超级会员方式抽成的用户抽成比例）设置为config中运总直属超会抽成，indirect_svip_id（以间接超级会员方式抽成的用户ID ）设置为0，indirect_svip_rate（以间接超级会员方式抽成的用户抽成比例 ）设置为0，分公司、分公司比例、以直属运营总监团队方式抽成、以直属高级总监团队方式抽成、间接运营/高级总监抽成都继承自己的
 	  更新comm_relation_this中，indirect_svip_id（以间接超级会员方式抽成的用户ID）为自己的记录（间接团队），将indirect_svip_rate（以间接超级会员方式抽成的用户抽成比例 ）设置为config中运总间接超会抽成，分公司、分公司比例、以直属运营总监团队方式抽成、以直属高级总监团队方式抽成、间接运营/高级总监抽成都继承自己的
 
+7.升级9777运营总监和高级总监团队
+  与升级运营总监和高级总监团队一致
+  区别：查询comm_relation_this表中所有非超级会员身份的记录，只查9777
+  
+8.其他升级1
+  8.1 将升级临时表有，comm_relation_this表中没有的新用户记录，新增到comm_relation_this表
+  8.2 修改comm_relation_this，将分公司下direct_director_id（以直属运营总监团队方式抽成的用户ID）或者direct_senior_director_id（以直属高级总监团队方式抽成的用户ID）不为0的记录，branch_company_member_type（分公司成员身份）设置为0（与分公司无关系）
+  8.3 修改comm_relation_this，将分公司的self_rate设置为config中的分公司自推，branch_company_id（所属分公司id） = 0，branch_company_member_type（分公司成员身份） = 0，branch_company_rate（所属分公司抽成比例） = 0
+  8.4 修改comm_relation_this，将分公司下直属成员的branch_company_rate（所属分公司抽成比例）设置为config中高总直属超会抽成
+  8.5 修改comm_relation_this，将分公司下间接成员的branch_company_rate（所属分公司抽成比例）设置为config中高总间接超会抽成
+  8.6 修改comm_relation_this，将分公司下无关系成员的branch_company_rate（所属分公司抽成比例）设置为config中分公司全局抽成
+
+9.其他升级2
+  9.1 查询comm_relation_this表中分公司下的，与分公司无关系运营总监
+  9.2 循环这些运总
+      修改comm_relation_this表，如果是这些运总下的超级会员，分公司抽成设置为高总直属运总团队抽成
+	  
+10.同步duoke表记录
+   将comm_relation_this表的relation、rights_type、update_time同步到duoke表的take_relation、rights_type、update_time
 
 
+
+
+	  
 
 统一处理：
 1.没有挂靠的升级（身份、duokeid）
